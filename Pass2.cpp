@@ -1,21 +1,18 @@
 #include "Pass2.h"
 
-void print(ObjCode obj)
+void genObjcode(ObjCode obj, parsedLine &pl)
 {
-    int muchAd = stoi(obj.flags.to_string().substr(0, 2), 0, 2);
-    int dispAd = stoi(obj.flags.to_string().substr(2), 0, 2);
-    // cout << obj.flags[0] + obj.flags[1] << endl;
-    print_hex_from_bin(muchAd + obj.opcode);
-    print_hex_from_bin(dispAd + obj.displacement);
-    cout << " ";
+    pl.objectProgCode += (obj.ni + obj.opcode);
+    pl.objectProgCode += print_hex_from_bin(obj.xbpe);
+    pl.objectProgCode += print_hex_from_bin(obj.displacement);
 }
 
-void printParsedLineListing(parsedLine &pl)
+void printParsedLineListing(parsedLine pl)
 {
 
+    genObjcode(pl.objCode, pl);
     cout << setfill('0') << setw(4) << right << hex << pl.location << " " << pl.label << " " << pl.opcode << " " << pl.op1 << " " << pl.op2 << " ";
-    // print(pl.objCode);
-    cout << pl.err << "\n";
+    cout << pl.err << " " << pl.objectProgCode << "\n";
 }
 
 void createObjectCodeForData(parsedLine &pl)
@@ -62,7 +59,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 {
                     long long effectiveLoc = symbol.block.startingAddress + symbol.location;
                     obj.displacement = effectiveLoc;
-                    obj.flags = bitset<6>("100001"); // extended + immediate
+                    obj.ni = 2;
+                    obj.xbpe = 1;
+                    // obj.flags = bitset<6>("100001"); // extended + immediate
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -76,7 +75,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 if (validf3(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
-                    obj.flags = bitset<6>("100010"); // extended + immediate
+                    obj.ni = 2;
+                    obj.xbpe = 2;
+                    // obj.flags = bitset<6>("100010"); // extended + immediate
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -110,7 +111,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                     if (validf4(disp))
                     {
                         obj.displacement = disp;
-                        obj.flags = bitset<6>("010001"); // extended + immediate
+                        obj.ni = 1;
+                        obj.xbpe = 1;
+                        // obj.flags = bitset<6>("010001"); // extended + immediate
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
                     else
@@ -123,7 +126,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                     if (validf3(disp - locCtr))
                     {
                         obj.displacement = disp - locCtr;
-                        obj.flags = bitset<6>("010010"); // nixbpe
+                        obj.ni = 1;
+                        obj.xbpe = 2;
+                        // obj.flags = bitset<6>("010010"); // nixbpe
                     }
                     else
                     {
@@ -141,7 +146,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                     if (validf4(effectiveLoc))
                     {
                         obj.displacement = effectiveLoc;
-                        obj.flags = bitset<6>("010001"); // extended + immediate
+                        obj.ni = 2;
+                        obj.xbpe = 1;
+                        // obj.flags = bitset<6>("010001"); // extended + immediate
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
                     else
@@ -155,7 +162,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                     if (validf3(effectiveLoc))
                     {
                         obj.displacement = effectiveLoc;
-                        obj.flags = bitset<6>("010010"); // extended + immediate
+                        obj.ni = 1;
+                        obj.xbpe = 2;
+                        // obj.flags = bitset<6>("010010"); //
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
                     else
@@ -184,7 +193,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 if (validf4(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
-                    obj.flags = bitset<6>("010001"); // extended + immediate
+                    obj.ni = 1;
+                    obj.xbpe = 1;
+                    // obj.flags = bitset<6>("010001"); // extended + immediate
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -199,7 +210,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 if (validf3(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
-                    obj.flags = bitset<6>("010010"); // extended + immediate
+                    obj.ni = 2;
+                    obj.xbpe = 2;
+                    // obj.flags = bitset<6>("010010"); //
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -218,7 +231,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 if (validf4(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
-                    obj.flags = bitset<6>("110001"); // extended + immediate
+                    obj.ni = 3;
+                    obj.xbpe = 1;
+                    // obj.flags = bitset<6>("110001"); //
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -232,7 +247,9 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 if (validf3(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
-                    obj.flags = bitset<6>("110010"); // extended + immediate
+                    obj.ni = 3;
+                    obj.xbpe = 2;
+                    // obj.flags = bitset<6>("110010"); //
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -281,6 +298,18 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
         {
             cout << "\t\t" + pl.opcode + "\t\t" << endl;
         }
+        else if (pl.opcode == "EQU")
+        {
+            cout << setfill('0') << setw(4) << right << hex << pl.location << " " << pl.label << " " << pl.opcode << " " << pl.op1 << " " << pl.op2 << " " << pl.err << "\n";
+            continue;
+        }
+
+        else if (pl.opcode == "LTORG")
+        {
+            // Manage Literal Table
+            cout << "\t\tLTORG\t\t" << endl;
+        }
+
         else if (pl.opcode == "END")
         {
             // Manage Block Table
@@ -322,6 +351,7 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
             {
                 pl.op1 = "DEFAULT";
             }
+            blkTab[active.name].locCtr = locCtr;
             active = blkTab[pl.op1];
             locCtr = active.locCtr;
         }

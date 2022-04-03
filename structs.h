@@ -21,7 +21,8 @@ struct ObjCode
     int displacement;
     char reg1;
     char reg2;
-    bitset<6> flags;
+    int ni;
+    int xbpe;
     unsigned int format;
     string data = "";
 };
@@ -36,6 +37,7 @@ struct parsedLine
     string err;
     bool isFormat4 = false;
     ObjCode objCode;
+    string objectProgCode;
 };
 
 struct BlockTable

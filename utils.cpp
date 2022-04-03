@@ -57,7 +57,9 @@ bool validf4(int disp)
     return false;
 }
 
-void print_hex_from_bin(int str)
+string print_hex_from_bin(int str)
 {
-    cout << setfill('0') << setw(4) << right << hex << str;
+    char buf[2];
+    sprintf(buf, "%0x", str);
+    return string(buf);
 }

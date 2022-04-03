@@ -116,8 +116,8 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
 
                     string validArithmeticOperations = "+-";
                     string symLabel = "";
-                    stack<pair<SymStruct, int>> labels;
-                    stack<string> operations;
+                    deque<pair<SymStruct, int>> labels;
+                    deque<string> operations;
                     int R = 0;
                     for (int i = 0; i < pl.op1.length(); i++)
                     {
@@ -138,8 +138,8 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
                                 return true;
                             }
                             auto symbol = symTab.find(symLabel)->second;
-                            labels.push({symbol, getRelativity(symbol)});
-                            operations.push(getString(pl.op1[i]));
+                            labels.push_back({symbol, getRelativity(symbol)});
+                            operations.push_back(getString(pl.op1[i]));
                             symLabel = "";
                         }
                     }
@@ -150,15 +150,15 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
                     }
                     auto symbol = symTab.find(symLabel)->second;
 
-                    labels.push({symbol, getRelativity(symTab.find(symLabel)->second)});
+                    labels.push_back({symbol, getRelativity(symTab.find(symLabel)->second)});
                     while (!labels.empty() && !operations.empty())
                     {
-                        auto op1 = labels.top();
-                        labels.pop();
-                        auto op2 = labels.top();
-                        labels.pop();
-                        string arith = operations.top();
-                        operations.pop();
+                        auto op1 = labels.front();
+                        labels.pop_front();
+                        auto op2 = labels.front();
+                        labels.pop_front();
+                        string arith = operations.front();
+                        operations.pop_front();
                         ll location = 0;
                         int relativity = 0;
                         if (arith == "+")
@@ -171,11 +171,11 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
                             location = op1.first.location - op2.first.location;
                             relativity = op1.second - op2.second;
                         }
-                        labels.push({*createSymbol(pl.label, location, active), relativity});
+                        labels.push_front({*createSymbol(pl.label, location, active), relativity});
                     }
-                    if (labels.top().second == 0 or labels.top().second == 1)
+                    if (labels.front().second == 0 or labels.front().second == 1)
                     {
-                        SymStruct ssy = labels.top().first;
+                        SymStruct ssy = labels.front().first;
                         ssy.flags = "A";
                         symTab[pl.label] = ssy;
                     }

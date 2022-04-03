@@ -63,11 +63,18 @@ void buildRegMap()
     regs["SW"] = 9;
 }
 
-void printSymTable(map<string, SymStruct> &mp)
+void printTable(map<string, SymStruct> &mp)
 {
     for (auto it = mp.begin(); it != mp.end(); ++it)
     {
         print(it->first, it->second.location);
+    }
+}
+void printTable(map<string, BlockTable> &mp)
+{
+    for (auto it = mp.begin(); it != mp.end(); ++it)
+    {
+        print(it->first, it->second.name, it->second.blockLength, it->second.startingAddress, it->second.number);
     }
 }
 
@@ -110,7 +117,8 @@ int main()
         if (!err)
         {
             print();
-            printSymTable(symTab);
+            // printSymTable(symTab);
+            printTable(blkTab);
             cout << "\n\n***Listing File***\n"
                  << endl;
             pass2(symTab, opTab, litTab, blkTab, vec);

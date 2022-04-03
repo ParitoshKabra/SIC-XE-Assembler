@@ -10,6 +10,6 @@ std::string string_to_hex(const std::string &input);
 bool isNumeric(string s);
 bool validf3(int disp);
 bool validf4(int disp);
-void print_hex_from_bin(int str);
+string print_hex_from_bin(int str);
 
 #endif
