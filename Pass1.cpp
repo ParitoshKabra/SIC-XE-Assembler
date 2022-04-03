@@ -28,7 +28,7 @@ bool comparator(BlockTable b1, BlockTable b2)
     return b1.number < b2.number;
 }
 
-void manageBlockTable(map<string, BlockTable> &blkTab, long long &programLength, ll &startingAddress)
+void manageBlockTable(map<string, BlockTable> &blkTab, map<string, SymStruct> &symTab, long long &programLength, ll &startingAddress)
 {
     vector<BlockTable> v;
 
@@ -49,6 +49,10 @@ void manageBlockTable(map<string, BlockTable> &blkTab, long long &programLength,
         it->blockLength = it->locCtr;
         it->startingAddress = prev->startingAddress + prev->blockLength;
         blkTab[it->name] = *it;
+    }
+    for (auto &sym : symTab)
+    {
+        sym.second.block = blkTab[sym.second.block.name];
     }
 }
 
@@ -230,7 +234,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
         else if (pl.opcode == "END")
         {
             // Manage Block Table
-            manageBlockTable(blkTab, programLength, startingAddress);
+            manageBlockTable(blkTab, symTab, programLength, startingAddress);
             manageLiteralTable(litTab, locCtr, vec, i + 1);
             cout
                 << "END"

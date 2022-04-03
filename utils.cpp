@@ -61,5 +61,6 @@ string print_hex_from_bin(int str)
 {
     char buf[2];
     sprintf(buf, "%0x", str);
+    // cout << "in print hex: " + string(buf) << endl;
     return string(buf);
 }

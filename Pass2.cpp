@@ -1,18 +1,22 @@
 #include "Pass2.h"
 
-void genObjcode(ObjCode obj, parsedLine &pl)
+int genObjcode(ObjCode obj, parsedLine &pl)
 {
-    pl.objectProgCode += (obj.ni + obj.opcode);
-    pl.objectProgCode += print_hex_from_bin(obj.xbpe);
-    pl.objectProgCode += print_hex_from_bin(obj.displacement);
+    int op1 = obj.ni + obj.opcode;
+    int op2 = obj.xbpe;
+    int op3 = obj.displacement;
+    // cout << op1 << endl;
+    // cout << op1 << " " << op2 << " " << op3 << endl;
+    // return 0;
+    return op1 * (0x10000) + op2 * (0x1000) + op3;
+    // return ((op1 << 4 + op2) << 12) + op3;
 }
 
 void printParsedLineListing(parsedLine pl)
 {
 
-    genObjcode(pl.objCode, pl);
     cout << setfill('0') << setw(4) << right << hex << pl.location << " " << pl.label << " " << pl.opcode << " " << pl.op1 << " " << pl.op2 << " ";
-    cout << pl.err << " " << pl.objectProgCode << "\n";
+    cout << pl.err << " " << setfill('0') << setw(6) << left << hex << genObjcode(pl.objCode, pl) << "\n";
 }
 
 void createObjectCodeForData(parsedLine &pl)
@@ -32,7 +36,7 @@ void createObjectCodeForData(parsedLine &pl)
 
 SymStruct getSymbol(map<string, SymStruct> &symTab, parsedLine &pl, int substrIndex)
 {
-    string str = pl.op1.substr(1);
+    string str = pl.op1.substr(substrIndex);
     auto symbol = symTab.find(str);
     if (symbol == symTab.end())
     {
@@ -44,6 +48,7 @@ SymStruct getSymbol(map<string, SymStruct> &symTab, parsedLine &pl, int substrIn
 
 bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr, BlockTable bt)
 {
+
     try
     {
         ObjCode obj;
@@ -177,16 +182,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
         }
         else if (pl.op1[0] == '=')
         {
-            string str = pl.op1.substr(1);
-            auto symbol = symTab.find(str);
-            if (symbol == symTab.end())
-            {
-                pl.err = "Undefined Label";
-                return true;
-            }
-
             auto literal = litTab.find(pl.op1);
-
             if (pl.isFormat4)
             {
                 long long effectiveLoc = literal->second.block.startingAddress + literal->second.address;
@@ -224,6 +220,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
         }
         else
         {
+            // cout << "came here in else " << opTab[pl.opcode].opcode << endl;
             auto symbol = getSymbol(symTab, pl, 0);
             if (pl.isFormat4)
             {
@@ -233,7 +230,6 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                     obj.displacement = effectiveLoc;
                     obj.ni = 3;
                     obj.xbpe = 1;
-                    // obj.flags = bitset<6>("110001"); //
                     obj.opcode = opTab[pl.opcode].opcode;
                 }
                 else
@@ -243,14 +239,17 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
             }
             else
             {
+                // cout << symbol.block.name << " " << symbol.block.startingAddress << " " << symbol.location << endl;
                 long long effectiveLoc = symbol.block.startingAddress + symbol.location - locCtr;
                 if (validf3(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
                     obj.ni = 3;
                     obj.xbpe = 2;
-                    // obj.flags = bitset<6>("110010"); //
                     obj.opcode = opTab[pl.opcode].opcode;
+                    // cout << "obj: " << obj.opcode + obj.ni << endl;
+                    // cout << "obj: " << obj.xbpe << endl;
+                    // cout << "obj: " << obj.displacement << endl;
                 }
                 else
                 {
@@ -259,12 +258,32 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 // otherwise raise error
             }
         }
+        pl.objCode = obj;
     }
     catch (string err)
     {
         return true;
     }
     return false;
+}
+
+bool createObjectCodeWithRegisters(
+    parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr, BlockTable bt)
+{
+    if (pl.opcode)
+    {
+    }
+}
+bool createObjectCodeWithOnlyOpcode(
+    parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr, BlockTable bt)
+{
+    ObjCode obj;
+    int op = opTab.find(pl.opcode)->second.opcode;
+    obj.displacement = 0;
+    obj.ni = 3;
+    obj.xbpe = 0;
+    obj.opcode = op;
+    pl.objCode = obj; // handle operands should not come with zero operand instructions
 }
 
 void setProgramLength(map<string, BlockTable> &blkTab, ll &programLength)
@@ -357,20 +376,31 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
         }
         else
         {
+            OpCodeStruct op = opTab.find(pl.opcode)->second;
             if (pl.isFormat4)
             {
                 locCtr += 4;
             }
             else
             {
-                OpCodeStruct op = opTab.find(pl.opcode)->second;
                 locCtr += op.possibleFormat;
             }
             ll pcRel = active.startingAddress + locCtr;
-            createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel, active);
+            if (op.possibleFormat == FORMAT_2)
+            {
+                createObjectCodeWithRegisters(pl, opTab, symTab, litTab, pcRel, active);
+            }
+            else if (op.possibleFormat == FORMAT_1)
+            {
+                createObjectCodeWithOnlyOpcode(pl, opTab, symTab, litTab, pcRel, active);
+            }
+            else
+            {
+                createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel, active);
+            }
         }
         v[i] = pl;
-        if (pl.opcode != "START" && pl.opcode != "END" && pl.opcode != "LTORG" && pl.opcode != "USE" && pl.opcode[0] != '.')
+        if (pl.opcode != "START" && pl.opcode != "END" && pl.opcode != "LTORG" && pl.opcode != "USE" && pl.opcode[0] != '.' && pl.opcode != "RESB" && pl.opcode != "RESW")
         {
             printParsedLineListing(pl);
         }

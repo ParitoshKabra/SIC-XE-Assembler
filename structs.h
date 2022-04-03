@@ -37,7 +37,6 @@ struct parsedLine
     string err;
     bool isFormat4 = false;
     ObjCode objCode;
-    string objectProgCode;
 };
 
 struct BlockTable
