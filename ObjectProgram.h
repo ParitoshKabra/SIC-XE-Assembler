@@ -8,7 +8,7 @@ using ll = long long;
 
 void writeHeaderRecord(string name, int startingAddress);
 void writeTextRecord(map<string, BlockTable> &blkTab, vector<parsedLine> &vec);
-void writeModificationRecord(vector<parsedLine> &vec);
+void writeModificationRecord(vector<ModicationRecord> &vec);
 void writeEndRecord(int programLength);
 
 #endif

@@ -9,6 +9,13 @@ string printFormat4(parsedLine pl)
     else
         return "";
 }
+ModicationRecord createModificationRecord(int start, int modify)
+{
+    ModicationRecord m;
+    m.start = start;
+    m.modified = modify;
+    return m;
+}
 
 void printParsedLineListing(parsedLine pl)
 {
@@ -51,7 +58,7 @@ SymStruct getSymbol(map<string, SymStruct> &symTab, parsedLine &pl, int substrIn
     return symbol->second;
 }
 
-ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, ll &locCtr, parsedLine &pl, int ni, int subStrIndex)
+ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, ll &locCtr, parsedLine &pl, int ni, int subStrIndex, vector<ModicationRecord> &modi)
 {
     ObjCode obj;
     auto symbol = getSymbol(symTab, pl, subStrIndex);
@@ -83,6 +90,12 @@ ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, O
             obj.ni = ni;
             obj.xbpe = 1 | (isIndexed << 3);
             obj.opcode = opTab[pl.opcode].opcode;
+            if (!isAbsolute)
+            {
+                // cout << "YES " + pl.opcode + " " + pl.op1 << endl;
+
+                modi.push_back(createModificationRecord(pl.location + 1, 5));
+            }
             return obj;
         }
         else
@@ -135,7 +148,7 @@ ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, O
     }
 }
 
-bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr)
+bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr, vector<ModicationRecord> &modifications)
 {
 
     try
@@ -154,7 +167,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
 
         if (pl.op1[0] == '@')
         {
-            obj = pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 2, 1);
+            obj = pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 2, 1, modifications);
         }
         else if (pl.op1[0] == '#')
         {
@@ -220,6 +233,11 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                         obj.ni = 2;
                         obj.xbpe = 1;
                         obj.opcode = opTab[pl.opcode].opcode;
+                        if (!isAbsolute)
+                        {
+                            // cout << "YES " + pl.opcode + " " + pl.op1 << endl;
+                            modifications.push_back(createModificationRecord(pl.location + 1, 5));
+                        }
                     }
                     else
                     {
@@ -290,6 +308,8 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                     obj.ni = 3;
                     obj.xbpe = 1;
                     obj.opcode = opTab[pl.opcode].opcode;
+                    // cout << "YES " + pl.opcode + " " + pl.op1 << endl;
+                    modifications.push_back(createModificationRecord(pl.location + 1, 5));
                 }
                 else
                 {
@@ -345,7 +365,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
         }
         else
         {
-            obj = pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 3, 0);
+            obj = pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 3, 0, modifications);
         }
         pl.objCode = obj;
         if (pl.opcode == "LDB")
@@ -432,7 +452,7 @@ void setProgramLength(map<string, BlockTable> &blkTab, ll &programLength)
     }
 }
 
-bool pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map<string, LiteralStruct> &litTab, map<string, BlockTable> &blkTab, map<string, int> &regs, vector<parsedLine> &v, ll &programL)
+bool pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map<string, LiteralStruct> &litTab, map<string, BlockTable> &blkTab, map<string, int> &regs, vector<parsedLine> &v, ll &programL, vector<ModicationRecord> &modifications)
 {
     ll startingAddress = 0;
     ll locCtr = startingAddress;
@@ -566,7 +586,7 @@ bool pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
             }
             else
             {
-                createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel);
+                createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel, modifications);
             }
         }
         v[i] = pl;

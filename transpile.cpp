@@ -86,14 +86,20 @@ void printTable(map<string, BlockTable> &mp)
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    setIO("test");
+    if (argc != 2)
+    {
+        cout << "usage: ./Assembler.exe <file-name>.in";
+        exit(1);
+    }
+    setIO(argv[1]);
     vector<parsedLine> vec;
     map<string, OpCodeStruct> opTab;
     map<string, SymStruct> symTab;
     map<string, BlockTable> blkTab;
     map<string, LiteralStruct> litTab;
+    vector<ModicationRecord> modifications;
     BlockTable b;
     blkTab["DEFAULT"] = b;
     build(opTab);
@@ -130,7 +136,7 @@ int main()
             printTable(litTab);
             cout << "\n\n***Listing File***\n"
                  << endl;
-            err = pass2(symTab, opTab, litTab, blkTab, regs, vec, programLength);
+            err = pass2(symTab, opTab, litTab, blkTab, regs, vec, programLength, modifications);
             print();
             cout << "\n\n***Object Program***\n"
                  << endl;
@@ -140,6 +146,7 @@ int main()
             writeHeaderRecord("TEST", startingAddress);
             writeTextRecord(blkTab, vec);
             writeEndRecord(programLength);
+            writeModificationRecord(modifications);
         }
     }
     catch (string err)

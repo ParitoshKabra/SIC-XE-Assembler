@@ -75,4 +75,11 @@ struct TextRecord
     string label;
 };
 
+struct ModicationRecord
+{
+    char label = 'M';
+    int start;
+    int modified;
+};
+
 #endif

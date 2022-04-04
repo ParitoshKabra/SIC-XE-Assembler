@@ -143,6 +143,10 @@ void writeEndRecord(int programLength)
 {
     cout << 'E' << setfill('0') << setw(6) << hex << programLength << "\n";
 }
-void writeModificationRecord(vector<parsedLine> &vec)
+void writeModificationRecord(vector<ModicationRecord> &vec)
 {
+    for (auto &x : vec)
+    {
+        cout << x.label << setfill('0') << setw(6) << x.start << setfill('0') << setw(2) << x.modified << "\n";
+    }
 }
