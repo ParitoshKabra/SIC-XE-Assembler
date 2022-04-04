@@ -241,7 +241,7 @@ bool litsComparator(pair<int, parsedLine> &p1, pair<int, parsedLine> &p2)
     return p1.second.location < p2.second.location;
 }
 
-bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab)
+bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab, string &programName)
 {
     ll startingAddress = 0;
     ll locCtr = startingAddress;
@@ -259,6 +259,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
         {
             startingAddress = stoi(pl.op1);
             locCtr = startingAddress;
+            programName = pl.label;
         }
         else if (pl.opcode == "*")
         {

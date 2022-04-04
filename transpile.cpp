@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     ll startingAddress = 0; // custom startingAddress
     ll locCtr = startingAddress;
     ll programLength;
-
+    string programName = "TEST";
     while (true)
     {
         getline(cin, s);
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
     {
         cout << "***Intermediate File***\n\n"
              << endl;
-        bool err = Pass1(vec, opTab, symTab, blkTab, litTab);
+        bool err = Pass1(vec, opTab, symTab, blkTab, litTab, programName);
         if (!err)
         {
             print();
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
         }
         if (!err)
         {
-            writeHeaderRecord("TEST", startingAddress);
+            writeHeaderRecord(programName, startingAddress);
             writeTextRecord(blkTab, vec);
             writeEndRecord(programLength);
             writeModificationRecord(modifications);

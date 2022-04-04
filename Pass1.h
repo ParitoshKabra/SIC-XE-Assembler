@@ -9,5 +9,5 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-bool Pass1(vector<parsedLine> &v, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab);
+bool Pass1(vector<parsedLine> &v, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab, string &programName);
 #endif

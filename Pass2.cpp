@@ -518,7 +518,7 @@ bool pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
         else if (pl.opcode == "WORD")
         {
             locCtr += 3;
-            createObjectCodeForWord(pl);
+            err = createObjectCodeForWord(pl);
         }
         else if (pl.opcode == "RESW")
         {
@@ -578,15 +578,15 @@ bool pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
             ll pcRel = active.startingAddress + locCtr;
             if (op.possibleFormat == FORMAT_2)
             {
-                createObjectCodeWithRegisters(pl, opTab, regs);
+                err = createObjectCodeWithRegisters(pl, opTab, regs);
             }
             else if (op.possibleFormat == FORMAT_1)
             {
-                createObjectCodeWithOnlyOpcode(pl, opTab);
+                err = createObjectCodeWithOnlyOpcode(pl, opTab);
             }
             else
             {
-                createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel, modifications);
+                err = createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel, modifications);
             }
         }
         v[i] = pl;
