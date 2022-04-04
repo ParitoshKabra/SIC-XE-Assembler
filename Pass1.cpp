@@ -47,6 +47,7 @@ void manageBlockTable(map<string, BlockTable> &blkTab, map<string, SymStruct> &s
         auto prev = it - 1;
         it->blockLength = it->locCtr;
         it->startingAddress = prev->startingAddress + prev->blockLength;
+        it->locCtr = 0;
         blkTab[it->name] = *it;
     }
     for (auto &sym : symTab)
@@ -235,6 +236,11 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
     }
 }
 
+bool litsComparator(pair<int, parsedLine> &p1, pair<int, parsedLine> &p2)
+{
+    return p1.second.location < p2.second.location;
+}
+
 bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab)
 {
     ll startingAddress = 0;
@@ -404,6 +410,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
             printParsedLineInterMediate(pl);
         }
     }
+    sort(lits.begin(), lits.end(), litsComparator);
     for (int i = 0; i < lits.size(); i++)
     {
         vec.insert(vec.begin() + lits[i].first, lits[i].second);

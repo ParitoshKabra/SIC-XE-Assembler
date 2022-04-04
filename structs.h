@@ -67,4 +67,12 @@ struct LiteralStruct
     bool dumped = false;
 };
 
+struct TextRecord
+{
+    int startingAddress;
+    int size;
+    string text;
+    string label;
+};
+
 #endif

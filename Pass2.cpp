@@ -2,43 +2,6 @@
 int baseRegister = 0;
 bool base = false;
 
-pair<int, int> genObjcode(ObjCode obj, parsedLine &pl)
-{
-    if (obj.isWord != -13371337)
-    {
-        return {obj.isWord, 3};
-    }
-    int op1 = obj.ni + obj.opcode;
-    if (obj.isOnlyOpcode)
-    {
-        return {obj.opcode, 1};
-    }
-    if (obj.isData)
-    {
-        return {stoi(obj.data, 0, 16), obj.data.length() / 2};
-    }
-    if (obj.hasReg)
-    {
-        int ans = (op1 << 8) + (obj.reg1 << 4);
-        if (obj.reg2 == -1)
-        {
-            return {ans, 2};
-        }
-        else
-        {
-            ans += obj.reg2;
-            return {ans, 2};
-        }
-    }
-    int op2 = obj.xbpe;
-    int op3 = obj.displacement;
-    if (pl.isFormat4)
-    {
-        return {(op1 << 24) + (op2 << 20) + (op3 & 0xffff), 4};
-    }
-    return {(op1 << 16) + (op2 << 12) + (op3 & 0xfff), 3};
-}
-
 string printFormat4(parsedLine pl)
 {
     if (pl.isFormat4)
@@ -224,42 +187,12 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 }
                 else
                 {
-                    if (validf3(disp - locCtr))
+                    if (validf3(disp))
                     {
-                        obj.displacement = disp - locCtr;
+                        obj.displacement = disp;
                         obj.ni = 1;
-                        obj.xbpe = 2;
+                        obj.xbpe = 0;
                         obj.opcode = opTab[pl.opcode].opcode;
-                    }
-                    else if (base)
-                    {
-                        disp += locCtr - baseRegister;
-                        if (validf3(disp))
-                        {
-                            obj.displacement = disp;
-                            obj.ni = 1;
-                            obj.xbpe = 4;
-                            obj.opcode = opTab[pl.opcode].opcode;
-                        }
-                        else
-                        {
-                            simple = true;
-                        }
-                    }
-                    else if (simple)
-                    {
-                        int simpleDisp = stoi(str);
-                        if (validf3(simpleDisp))
-                        {
-                            obj.displacement = simpleDisp;
-                            obj.ni = 1;
-                            obj.xbpe = 0;
-                            obj.opcode = opTab[pl.opcode].opcode;
-                        }
-                        else
-                        {
-                            throw "Invalid Displacement";
-                        }
                     }
                     else
                     {
@@ -295,7 +228,10 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 }
                 else
                 {
-                    effectiveLoc -= locCtr;
+                    if (!isAbsolute)
+                    {
+                        effectiveLoc -= locCtr;
+                    }
                     if (validf3(effectiveLoc))
                     {
                         obj.displacement = effectiveLoc;
@@ -303,7 +239,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                         obj.xbpe = 2;
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
-                    else if (base)
+                    else if (base && !isAbsolute)
                     {
                         effectiveLoc += locCtr - baseRegister;
                         if (validf3(effectiveLoc))
@@ -318,7 +254,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                             simple = true;
                         }
                     }
-                    else if (simple)
+                    else if (simple && !isAbsolute)
                     {
                         long long simpleLoc = symbol.location;
                         if (validf3(simpleLoc))
@@ -492,6 +428,7 @@ void setProgramLength(map<string, BlockTable> &blkTab, ll &programLength)
     for (auto it = blkTab.begin(); it != blkTab.end(); ++it)
     {
         programLength += it->second.locCtr;
+        it->second.locCtr = 0;
     }
 }
 
@@ -502,7 +439,6 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
     ll programLength = 0;
     bool err = false;
     BlockTable active = blkTab["DEFAULT"];
-    locCtr = active.locCtr;
 
     for (int i = 0; i < v.size(); i++)
     {
@@ -524,6 +460,10 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
             }
             base = true;
             printParsedLineWithoutObjCode(pl);
+        }
+        else if (pl.opcode == "NOBASE")
+        {
+            base = false;
         }
         else if (pl.opcode[0] == '.')
         {
@@ -600,7 +540,7 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
                 pl.op1 = "DEFAULT";
             }
             blkTab[active.name].locCtr = locCtr;
-            active = blkTab[pl.op1];
+            active = blkTab[pl.op1]; // block error
             locCtr = active.locCtr;
         }
         else

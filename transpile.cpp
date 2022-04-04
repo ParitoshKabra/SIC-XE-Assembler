@@ -87,7 +87,7 @@ void printTable(map<string, BlockTable> &mp)
 
 int main()
 {
-    setIO("test1");
+    setIO("test");
     vector<parsedLine> vec;
     map<string, OpCodeStruct> opTab;
     map<string, SymStruct> symTab;

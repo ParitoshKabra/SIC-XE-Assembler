@@ -65,3 +65,55 @@ string print_hex_from_bin(int str)
     // cout << "in print hex: " + string(buf) << endl;
     return string(buf);
 }
+pair<int, int> genObjcode(ObjCode obj, parsedLine &pl)
+{
+    if (obj.isWord != -13371337)
+    {
+        return {obj.isWord, 3};
+    }
+    int op1 = obj.ni + obj.opcode;
+    if (obj.isOnlyOpcode)
+    {
+        return {obj.opcode, 1};
+    }
+    if (obj.isData)
+    {
+        return {stoi(obj.data, 0, 16), obj.data.length() / 2};
+    }
+    if (obj.hasReg)
+    {
+        int ans = (op1 << 8) + (obj.reg1 << 4);
+        if (obj.reg2 == -1)
+        {
+            return {ans, 2};
+        }
+        else
+        {
+            ans += obj.reg2;
+            return {ans, 2};
+        }
+    }
+    int op2 = obj.xbpe;
+    int op3 = obj.displacement;
+    if (pl.isFormat4)
+    {
+        return {(op1 << 24) + (op2 << 20) + (op3 & 0xffff), 4};
+    }
+    return {(op1 << 16) + (op2 << 12) + (op3 & 0xfff), 3};
+}
+string getProgramName(string label)
+{
+    if (label.length() > 6)
+    {
+        return label.substr(0, 6);
+    }
+    else
+    {
+        string ans = label;
+        while (ans.length() < 6)
+        {
+            ans += '_';
+        }
+        return ans;
+    }
+}
