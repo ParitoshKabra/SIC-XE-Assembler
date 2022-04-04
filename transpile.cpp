@@ -47,7 +47,6 @@ void print(T var1, Types... var2)
 }
 
 // int baseRegister = -1;
-bool base = false;
 
 map<string, int> regs;
 
@@ -121,7 +120,7 @@ int main()
     {
         cout << "***Intermediate File***\n\n"
              << endl;
-        bool err = Pass1(vec, opTab, symTab, blkTab, litTab, base);
+        bool err = Pass1(vec, opTab, symTab, blkTab, litTab);
         if (!err)
         {
             print();

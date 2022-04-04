@@ -202,7 +202,14 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
                     if (labels.front().second == 0 or labels.front().second == 1)
                     {
                         SymStruct ssy = labels.front().first;
-                        ssy.flags = "A";
+                        if (labels.front().second == 0)
+                        {
+                            ssy.flags = "A";
+                        }
+                        else
+                        {
+                            ssy.flags = "R";
+                        }
                         symTab[pl.label] = ssy;
                     }
                     else
@@ -228,7 +235,7 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
     }
 }
 
-bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab, bool &base)
+bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab)
 {
     ll startingAddress = 0;
     ll locCtr = startingAddress;
@@ -253,7 +260,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
         }
         else if (pl.opcode == "BASE")
         {
-            base = true;
+            // base = true; //handled in Pass2
             cout << "\t\t" + pl.opcode << " " << pl.op1 << " " << pl.op2 << " " << pl.err << "\n";
         }
         else if (pl.opcode == "LTORG")
@@ -378,6 +385,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
                         }
                     }
                     pl.isFormat4 = isFormat4;
+                    pl.opcode = mnemonic;
                     if (isFormat4)
                     {
                         locCtr += 4;
