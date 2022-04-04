@@ -349,7 +349,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
 
                 if (op == opTab.end())
                 {
-                    pl.err = "Invalid Opcode";
+                    pl.err = "Invalid Opcode " + mnemonic;
                     err = true;
                 }
                 else

@@ -4,6 +4,7 @@ void build(map<string, OpCodeStruct> &opTab)
 {
     string mnemonic = "";
     OpCodeStruct *op = new OpCodeStruct;
+    mnemonic = "ADD";
     op->mnemonic = "ADD";
     op->opcode = 0x18;
     op->possibleFormat = FORMAT_3_4;

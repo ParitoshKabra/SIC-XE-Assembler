@@ -56,7 +56,7 @@ void printParsedLineListing(parsedLine pl)
 
 void printParsedLineWithoutObjCode(parsedLine pl)
 {
-    cout << pl.opcode << " " << pl.op1 << " " << pl.err << endl;
+    cout << setfill('0') << setw(4) << right << hex << pl.location << " " << pl.label << " " << pl.opcode << " " << pl.op1 << " " << pl.op2 << " " << pl.err << "\n";
 }
 
 void createObjectCodeForData(parsedLine &pl, int subStrIndex)
@@ -88,12 +88,25 @@ SymStruct getSymbol(map<string, SymStruct> &symTab, parsedLine &pl, int substrIn
     return symbol->second;
 }
 
-void pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, ll &locCtr, parsedLine &pl, int ni)
+ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, ll &locCtr, parsedLine &pl, int ni, int subStrIndex)
 {
     ObjCode obj;
-    auto symbol = getSymbol(symTab, pl, 1);
+    auto symbol = getSymbol(symTab, pl, subStrIndex);
     bool isAbsolute = symbol.flags == "A";
     long long effectiveLoc = symbol.block.startingAddress + symbol.location;
+    bool simple = false;
+    int isIndexed = 0;
+    if (pl.op2 != "")
+    {
+        if (pl.op2 == "X")
+        {
+            isIndexed = 1;
+        }
+        else
+        {
+            throw "Index Register should be X";
+        }
+    }
     if (isAbsolute)
     {
         effectiveLoc = symbol.location;
@@ -104,8 +117,9 @@ void pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCo
         {
             obj.displacement = effectiveLoc;
             obj.ni = 2;
-            obj.xbpe = 1;
+            obj.xbpe = 1 | (isIndexed << 3);
             obj.opcode = opTab[pl.opcode].opcode;
+            return obj;
         }
         else
         {
@@ -120,8 +134,9 @@ void pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCo
         {
             obj.displacement = effectiveLoc;
             obj.ni = ni;
-            obj.xbpe = 2;
+            obj.xbpe = 2 | (isIndexed << 3);
             obj.opcode = opTab[pl.opcode].opcode;
+            return obj;
         }
         else if (base)
         {
@@ -130,18 +145,33 @@ void pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, OpCo
             {
                 obj.displacement = effectiveLoc;
                 obj.ni = ni;
-                obj.xbpe = 4;
+                obj.xbpe = 4 | (isIndexed << 3);
                 obj.opcode = opTab[pl.opcode].opcode;
+                return obj;
+            }
+            simple = true;
+        }
+        else if (simple)
+        {
+            long long simpleLoc = symbol.location;
+            if (validf3(simpleLoc))
+            {
+                obj.displacement = simpleLoc;
+                obj.ni = ni;
+                obj.xbpe = 0 | (isIndexed << 3);
+                obj.opcode = opTab[pl.opcode].opcode;
+                return obj;
+            }
+            else
+            {
+                throw "Invalid Displacement";
             }
         }
-        else
-        {
-            throw "Invalid Displacement";
-        }
+        throw "Invalid Displacement";
     }
 }
 
-bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr, BlockTable bt)
+bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, LiteralStruct> &litTab, long long &locCtr)
 {
 
     try
@@ -154,12 +184,13 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
             obj.ni = 3;
             obj.xbpe = 0;
             obj.opcode = op;
-            pl.objCode = obj; // handle operands should not come with zero operand instructions
+            pl.objCode = obj;
             return false;
         }
+
         if (pl.op1[0] == '@')
         {
-            pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 2);
+            obj = pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 2, 1);
         }
         else if (pl.op1[0] == '#')
         {
@@ -168,13 +199,14 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 pl.err = "Too many arguments";
                 return true;
             }
-            auto symbol = getSymbol(symTab, pl, 1);
-            bool isAbsolute = symbol.flags == "A";
 
             string str = pl.op1.substr(1);
+
             if (isNumeric(str))
             {
                 int disp = stoi(str);
+                bool simple = false;
+
                 if (pl.isFormat4)
                 {
                     if (validf4(disp))
@@ -182,7 +214,6 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                         obj.displacement = disp;
                         obj.ni = 1;
                         obj.xbpe = 1;
-                        // obj.flags = bitset<6>("010001"); // extended + immediate
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
                     else
@@ -197,7 +228,6 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                         obj.displacement = disp - locCtr;
                         obj.ni = 1;
                         obj.xbpe = 2;
-                        // obj.flags = bitset<6>("010010"); // nixbpe
                     }
                     else if (base)
                     {
@@ -209,6 +239,25 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                             obj.xbpe = 4;
                             obj.opcode = opTab[pl.opcode].opcode;
                         }
+                        else
+                        {
+                            simple = true;
+                        }
+                    }
+                    else if (simple)
+                    {
+                        int simpleDisp = stoi(str);
+                        if (validf3(simpleDisp))
+                        {
+                            obj.displacement = simpleDisp;
+                            obj.ni = 1;
+                            obj.xbpe = 0;
+                            obj.opcode = opTab[pl.opcode].opcode;
+                        }
+                        else
+                        {
+                            throw "Invalid Displacement";
+                        }
                     }
                     else
                     {
@@ -218,9 +267,18 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
             }
             else
             {
+                auto symbol = getSymbol(symTab, pl, 1);
+                bool isAbsolute = symbol.flags == "A";
+                long long effectiveLoc = symbol.block.startingAddress + symbol.location;
+                bool simple = false;
+
+                if (isAbsolute)
+                {
+                    effectiveLoc = symbol.location;
+                }
                 if (pl.isFormat4)
                 {
-                    long long effectiveLoc = symbol.block.startingAddress + symbol.location;
+
                     if (validf4(effectiveLoc))
                     {
                         obj.displacement = effectiveLoc;
@@ -235,18 +293,12 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                 }
                 else
                 {
-                    // cout << str << " " << symbol.block.startingAddress << " " << symbol.location << endl;
-                    long long effectiveLoc = symbol.block.startingAddress + symbol.location - locCtr;
+                    effectiveLoc -= locCtr;
                     if (validf3(effectiveLoc))
                     {
                         obj.displacement = effectiveLoc;
                         obj.ni = 1;
                         obj.xbpe = 2;
-                        // cout << obj.ni << endl;
-                        // cout << obj.xbpe << endl;
-                        // cout << obj.displacement << endl;
-                        // cout << locCtr << endl;
-                        // obj.flags = bitset<6>("010010"); //
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
                     else if (base)
@@ -257,10 +309,27 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                             obj.displacement = effectiveLoc;
                             obj.ni = 1;
                             obj.xbpe = 4;
-                            // obj.flags = bitset<6>("100010"); // extended + immediate
                             obj.opcode = opTab[pl.opcode].opcode;
                         }
-                        // handle base relative
+                        else
+                        {
+                            simple = true;
+                        }
+                    }
+                    else if (simple)
+                    {
+                        long long simpleLoc = symbol.location;
+                        if (validf3(simpleLoc))
+                        {
+                            obj.displacement = simpleLoc;
+                            obj.ni = 1;
+                            obj.xbpe = 0;
+                            obj.opcode = opTab[pl.opcode].opcode;
+                        }
+                        else
+                        {
+                            throw "Invalid Displacement";
+                        }
                     }
                     else
                     {
@@ -271,10 +340,12 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
         }
         else if (pl.op1[0] == '=')
         {
-            auto literal = litTab.find(pl.op1);
+            auto literal = litTab.find(pl.op1)->second;
+            bool simple = false;
+
             if (pl.isFormat4)
             {
-                long long effectiveLoc = literal->second.block.startingAddress + literal->second.address;
+                long long effectiveLoc = literal.block.startingAddress + literal.address;
                 if (validf4(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
@@ -290,7 +361,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
             else
             {
 
-                long long effectiveLoc = literal->second.block.startingAddress + literal->second.address - locCtr;
+                long long effectiveLoc = literal.block.startingAddress + literal.address - locCtr;
                 if (validf3(effectiveLoc))
                 {
                     obj.displacement = effectiveLoc;
@@ -308,6 +379,25 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                         obj.xbpe = 4;
                         obj.opcode = opTab[pl.opcode].opcode;
                     }
+                    else
+                    {
+                        simple = true;
+                    }
+                }
+                else if (simple)
+                {
+                    long long simpleLoc = literal.address;
+                    if (validf3(simpleLoc))
+                    {
+                        obj.displacement = simpleLoc;
+                        obj.ni = 3;
+                        obj.xbpe = 0;
+                        obj.opcode = opTab[pl.opcode].opcode;
+                    }
+                    else
+                    {
+                        throw "Invalid Displacement";
+                    }
                 }
                 else
                 {
@@ -317,53 +407,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
         }
         else
         {
-            pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 3);
-            // auto symbol = getSymbol(symTab, pl, 0);
-            // if (pl.isFormat4)
-            // {
-            //     long long effectiveLoc = symbol.block.startingAddress + symbol.location;
-            //     if (validf4(effectiveLoc))
-            //     {
-            //         obj.displacement = effectiveLoc;
-            //         obj.ni = 3;
-            //         obj.xbpe = 1;
-            //         obj.opcode = opTab[pl.opcode].opcode;
-            //     }
-            //     else
-            //     {
-            //         pl.err = "Symbol " + pl.op1 + "displacement overflows";
-            //     }
-            // }
-            // else
-            // {
-            //     // cout << symbol.block.name << " " << symbol.block.startingAddress << " " << symbol.location << endl;
-            //     long long effectiveLoc = symbol.block.startingAddress + symbol.location - locCtr;
-            //     if (validf3(effectiveLoc))
-            //     {
-            //         obj.displacement = effectiveLoc;
-            //         obj.ni = 3;
-            //         obj.xbpe = 2;
-            //         obj.opcode = opTab[pl.opcode].opcode;
-            //         // cout << "obj: " << obj.opcode + obj.ni << endl;
-            //         // cout << "obj: " << obj.xbpe << endl;
-            //         // cout << "obj: " << obj.displacement << endl;
-            //     }
-            //     else if (base)
-            //     {
-            //         effectiveLoc += locCtr - baseRegister;
-            //         if (validf3(effectiveLoc))
-            //         {
-            //             obj.displacement = effectiveLoc;
-            //             obj.ni = 3;
-            //             obj.xbpe = 4;
-            //             obj.opcode = opTab[pl.opcode].opcode;
-            //         }
-            //     }
-            //     else
-            //     {
-            //         throw "Invalid Displacement";
-            //     }
-            // }
+            obj = pcOrBaseRelativeAddressing(symTab, opTab, locCtr, pl, 3, 0);
         }
         pl.objCode = obj;
         if (pl.opcode == "LDB")
@@ -579,7 +623,7 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
             }
             else
             {
-                createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel, active);
+                createObjectCodeForInstruction(pl, opTab, symTab, litTab, pcRel);
             }
         }
         v[i] = pl;
