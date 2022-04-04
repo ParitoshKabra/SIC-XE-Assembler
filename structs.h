@@ -17,10 +17,13 @@ struct OpCodeStruct
 struct ObjCode
 {
     bool isData = false;
+    bool hasReg = false;
+    bool isOnlyOpcode = false;
+    int isWord = -13371337;
     int opcode;
     int displacement;
-    char reg1;
-    char reg2;
+    int reg1;
+    int reg2;
     int ni;
     int xbpe;
     unsigned int format;

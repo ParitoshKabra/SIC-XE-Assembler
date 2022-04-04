@@ -6,7 +6,6 @@ void printParsedLineInterMediate(parsedLine &pl)
     cout << setfill('0') << setw(4) << right << hex << pl.location << " " << pl.label << " " << pl.opcode << " " << pl.op1 << " " << pl.op2 << " " << pl.err << "\n";
     // printf("%s %s %s %s\n", pl.label, pl.opcode, pl.op1, pl.op2);
 }
-
 BlockTable createBlock(string name, int id)
 {
     BlockTable b;
@@ -28,7 +27,7 @@ bool comparator(BlockTable b1, BlockTable b2)
     return b1.number < b2.number;
 }
 
-void manageBlockTable(map<string, BlockTable> &blkTab, map<string, SymStruct> &symTab, long long &programLength, ll &startingAddress)
+void manageBlockTable(map<string, BlockTable> &blkTab, map<string, SymStruct> &symTab, long long &programLength, ll &startingAddress, map<string, LiteralStruct> &litTab)
 {
     vector<BlockTable> v;
 
@@ -54,9 +53,13 @@ void manageBlockTable(map<string, BlockTable> &blkTab, map<string, SymStruct> &s
     {
         sym.second.block = blkTab[sym.second.block.name];
     }
+    for (auto &lit : litTab)
+    {
+        lit.second.block = blkTab[lit.second.block.name];
+    }
 }
 
-void manageLiteralTable(map<string, LiteralStruct> &lt, long long &locCtr, vector<parsedLine> &v, int index)
+void manageLiteralTable(map<string, LiteralStruct> &lt, long long &locCtr, vector<parsedLine> &v, vector<pair<int, parsedLine>> &lits, int index, BlockTable active)
 {
 
     for (auto it = lt.begin(); it != lt.end(); it++)
@@ -64,11 +67,13 @@ void manageLiteralTable(map<string, LiteralStruct> &lt, long long &locCtr, vecto
         if (!it->second.dumped)
         {
             it->second.dumped = true;
+            it->second.block = active;
             parsedLine p;
             it->second.address = locCtr;
-            p.label = "*";
-            p.opcode = it->second.value;
+            p.opcode = "*";
+            p.op1 = it->second.value;
             p.location = locCtr;
+            lits.push_back({index, p});
             // v.insert(v.begin() + index, p);
             printParsedLineInterMediate(p); // insert into vector
             locCtr += it->second.size;
@@ -131,6 +136,13 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
                         }
                         else
                         {
+                            if (isNumeric(symLabel))
+                            {
+                                labels.push_back({*createSymbol("numeric", stoi(symLabel), createBlock("numeric", 0)), 0});
+                                operations.push_back(getString(pl.op1[i]));
+                                symLabel = "";
+                                continue;
+                            }
                             if (symTab.find(symLabel) == symTab.end())
                             {
                                 pl.err = "Undefined " + symLabel;
@@ -147,14 +159,24 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
                             symLabel = "";
                         }
                     }
-                    if (symTab.find(symLabel) == symTab.end())
+                    bool num = false;
+                    if (isNumeric(symLabel))
                     {
-                        pl.err = "Undefined " + symLabel;
-                        return true;
+                        num = true;
+                        labels.push_back({*createSymbol(pl.label, stoi(symLabel), active), 0});
+                        symLabel = "";
                     }
-                    auto symbol = symTab.find(symLabel)->second;
+                    if (!num)
+                    {
+                        if (symTab.find(symLabel) == symTab.end())
+                        {
+                            pl.err = "Undefined " + symLabel;
+                            return true;
+                        }
+                        auto symbol = symTab.find(symLabel)->second;
 
-                    labels.push_back({symbol, getRelativity(symTab.find(symLabel)->second)});
+                        labels.push_back({symbol, getRelativity(symTab.find(symLabel)->second)});
+                    }
                     while (!labels.empty() && !operations.empty())
                     {
                         auto op1 = labels.front();
@@ -206,7 +228,7 @@ bool fillSymTab(parsedLine &pl, map<string, SymStruct> &symTab, ll &locCtr, Bloc
     }
 }
 
-bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab)
+bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string, SymStruct> &symTab, map<string, BlockTable> &blkTab, map<string, LiteralStruct> &litTab, bool &base)
 {
     ll startingAddress = 0;
     ll locCtr = startingAddress;
@@ -215,7 +237,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
     BlockTable active = blkTab["DEFAULT"];
     locCtr = active.locCtr;
     int id = active.number;
-
+    vector<pair<int, parsedLine>> lits;
     for (int i = 0; i < vec.size(); i++)
     {
         auto pl = vec[i];
@@ -225,17 +247,26 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
             startingAddress = stoi(pl.op1);
             locCtr = startingAddress;
         }
+        else if (pl.opcode == "*")
+        {
+            continue;
+        }
+        else if (pl.opcode == "BASE")
+        {
+            base = true;
+            cout << "\t\t" + pl.opcode << " " << pl.op1 << " " << pl.op2 << " " << pl.err << "\n";
+        }
         else if (pl.opcode == "LTORG")
         {
             // Manage Literal Table
             cout << "\t\tLTORG\t\t" << endl;
-            manageLiteralTable(litTab, locCtr, vec, i + 1);
+            manageLiteralTable(litTab, locCtr, vec, lits, i + 1, active);
         }
         else if (pl.opcode == "END")
         {
             // Manage Block Table
-            manageBlockTable(blkTab, symTab, programLength, startingAddress);
-            manageLiteralTable(litTab, locCtr, vec, i + 1);
+            manageBlockTable(blkTab, symTab, programLength, startingAddress, litTab);
+            manageLiteralTable(litTab, locCtr, vec, lits, i + 1, blkTab["DEFAULT"]);
             cout
                 << "END"
                 << " " << programLength;
@@ -269,10 +300,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
             {
                 symTab[pl.label] = *createSymbol(pl.label, locCtr, active); // raise error here if symbol exists
             }
-            if (pl.opcode == "*")
-            {
-                continue;
-            }
+
             if (pl.opcode == "RESB")
             {
                 locCtr += stoi(pl.op1); // raise error if empty or not a valid integer
@@ -362,10 +390,15 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
             }
         }
         vec[i] = pl;
-        if (pl.opcode != "END" && pl.opcode != "LTORG" && pl.opcode != "USE" && pl.opcode[0] != '.')
+        if (pl.opcode != "END" && pl.opcode != "LTORG" && pl.opcode != "USE" && pl.opcode[0] != '.' && pl.opcode != "BASE")
         {
             printParsedLineInterMediate(pl);
         }
     }
+    for (int i = 0; i < lits.size(); i++)
+    {
+        vec.insert(vec.begin() + lits[i].first, lits[i].second);
+    }
+
     return err;
 }

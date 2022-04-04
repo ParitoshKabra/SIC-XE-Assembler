@@ -19,11 +19,12 @@ string getString(char x)
 std::string string_to_hex(const std::string &input)
 {
     static const char hex_digits[] = "0123456789ABCDEF";
-
+    // trouble with quotes in c++
     std::string output;
-    output.reserve(input.length() * 2);
-    for (unsigned char c : input)
+    output.reserve((input.length() - 1) * 2);
+    for (int i = 0; i < input.length() - 1; i++)
     {
+        unsigned char c = input[i];
         output.push_back(hex_digits[c >> 4]);
         output.push_back(hex_digits[c & 15]);
     }

@@ -46,8 +46,9 @@ void print(T var1, Types... var2)
     print(var2...);
 }
 
-bool isBase = false;
-int baseRegister = -1;
+// int baseRegister = -1;
+bool base = false;
+
 map<string, int> regs;
 
 void buildRegMap()
@@ -68,6 +69,13 @@ void printTable(map<string, SymStruct> &mp)
     for (auto it = mp.begin(); it != mp.end(); ++it)
     {
         print(it->first, it->second.location);
+    }
+}
+void printTable(map<string, LiteralStruct> &mp)
+{
+    for (auto it = mp.begin(); it != mp.end(); ++it)
+    {
+        print(it->first, it->second.address, it->second.size, it->second.value, it->second.block.name);
     }
 }
 void printTable(map<string, BlockTable> &mp)
@@ -113,15 +121,16 @@ int main()
     {
         cout << "***Intermediate File***\n\n"
              << endl;
-        bool err = Pass1(vec, opTab, symTab, blkTab, litTab);
+        bool err = Pass1(vec, opTab, symTab, blkTab, litTab, base);
         if (!err)
         {
             print();
-            // printSymTable(symTab);
+            printTable(symTab);
             printTable(blkTab);
+            printTable(litTab);
             cout << "\n\n***Listing File***\n"
                  << endl;
-            pass2(symTab, opTab, litTab, blkTab, vec);
+            pass2(symTab, opTab, litTab, blkTab, regs, vec);
         }
     }
     catch (string err)
