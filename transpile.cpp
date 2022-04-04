@@ -81,7 +81,7 @@ void printTable(map<string, BlockTable> &mp)
 {
     for (auto it = mp.begin(); it != mp.end(); ++it)
     {
-        print(it->first, it->second.name, it->second.blockLength, it->second.startingAddress, it->second.number);
+        print(it->first, it->second.name, it->second.blockLength, it->second.startingAddress, it->second.startingAddress, it->second.number);
     }
 }
 

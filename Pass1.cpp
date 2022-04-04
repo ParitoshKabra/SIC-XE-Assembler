@@ -272,6 +272,7 @@ bool Pass1(vector<parsedLine> &vec, map<string, OpCodeStruct> &opTab, map<string
         else if (pl.opcode == "END")
         {
             // Manage Block Table
+            blkTab[active.name].locCtr = locCtr;
             manageBlockTable(blkTab, symTab, programLength, startingAddress, litTab);
             manageLiteralTable(litTab, locCtr, vec, lits, i + 1, blkTab["DEFAULT"]);
             cout

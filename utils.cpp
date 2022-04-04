@@ -43,7 +43,7 @@ bool isNumeric(string s)
 }
 bool validf3(int disp)
 {
-    if (-2048 <= disp <= 2047)
+    if (-2048 <= disp && disp <= 2047)
     {
         return true;
     }
@@ -51,7 +51,7 @@ bool validf3(int disp)
 }
 bool validf4(int disp)
 {
-    if (-524288 <= disp <= 524287)
+    if (-524288 <= disp && disp <= 524287)
     {
         return true;
     }

@@ -94,6 +94,7 @@ ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, O
     auto symbol = getSymbol(symTab, pl, subStrIndex);
     bool isAbsolute = symbol.flags == "A";
     long long effectiveLoc = symbol.block.startingAddress + symbol.location;
+
     bool simple = false;
     int isIndexed = 0;
     if (pl.op2 != "")
@@ -116,7 +117,7 @@ ObjCode pcOrBaseRelativeAddressing(map<string, SymStruct> &symTab, map<string, O
         if (validf4(effectiveLoc))
         {
             obj.displacement = effectiveLoc;
-            obj.ni = 2;
+            obj.ni = ni;
             obj.xbpe = 1 | (isIndexed << 3);
             obj.opcode = opTab[pl.opcode].opcode;
             return obj;
@@ -228,6 +229,7 @@ bool createObjectCodeForInstruction(parsedLine &pl, map<string, OpCodeStruct> &o
                         obj.displacement = disp - locCtr;
                         obj.ni = 1;
                         obj.xbpe = 2;
+                        obj.opcode = opTab[pl.opcode].opcode;
                     }
                     else if (base)
                     {
