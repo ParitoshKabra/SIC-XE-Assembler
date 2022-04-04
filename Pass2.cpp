@@ -432,7 +432,7 @@ void setProgramLength(map<string, BlockTable> &blkTab, ll &programLength)
     }
 }
 
-void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map<string, LiteralStruct> &litTab, map<string, BlockTable> &blkTab, map<string, int> &regs, vector<parsedLine> &v)
+bool pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map<string, LiteralStruct> &litTab, map<string, BlockTable> &blkTab, map<string, int> &regs, vector<parsedLine> &v, ll &programL)
 {
     ll startingAddress = 0;
     ll locCtr = startingAddress;
@@ -485,6 +485,7 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
         {
             // Manage Block Table
             setProgramLength(blkTab, programLength); // check
+            programL = programLength;
             cout
                 << "END"
                 << " " << programLength;
@@ -574,4 +575,5 @@ void pass2(map<string, SymStruct> &symTab, map<string, OpCodeStruct> &opTab, map
             printParsedLineListing(pl);
         }
     }
+    return err;
 }

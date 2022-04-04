@@ -7,7 +7,7 @@ using namespace std;
 using ll = long long;
 
 void writeHeaderRecord(string name, int startingAddress);
-void writeTextRecord(vector<parsedLine> &vec);
+void writeTextRecord(map<string, BlockTable> &blkTab, vector<parsedLine> &vec);
 void writeModificationRecord(vector<parsedLine> &vec);
 void writeEndRecord(int programLength);
 

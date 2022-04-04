@@ -112,7 +112,7 @@ string getProgramName(string label)
         string ans = label;
         while (ans.length() < 6)
         {
-            ans += '_';
+            ans.push_back('_');
         }
         return ans;
     }

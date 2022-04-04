@@ -6,6 +6,7 @@
 #include "Pass1.h"
 #include "Pass2.h"
 #include "parser.h"
+#include "ObjectProgram.h"
 
 using namespace std;
 using ll = long long;
@@ -129,7 +130,16 @@ int main()
             printTable(litTab);
             cout << "\n\n***Listing File***\n"
                  << endl;
-            pass2(symTab, opTab, litTab, blkTab, regs, vec);
+            err = pass2(symTab, opTab, litTab, blkTab, regs, vec, programLength);
+            print();
+            cout << "\n\n***Object Program***\n"
+                 << endl;
+        }
+        if (!err)
+        {
+            writeHeaderRecord("TEST", startingAddress);
+            writeTextRecord(blkTab, vec);
+            writeEndRecord(programLength);
         }
     }
     catch (string err)
